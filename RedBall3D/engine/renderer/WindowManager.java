@@ -59,7 +59,7 @@ public class WindowManager {
         });
     }
 
-    public void loop(Shader shader, boolean build) throws Exception {
+    public void loop(Shader shader) throws Exception {
         double lastTime = glfwGetTime();
         double lastSecond = lastTime;
         double physicsStep = 1.0 / 60.0;

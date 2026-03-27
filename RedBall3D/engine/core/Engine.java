@@ -39,13 +39,12 @@ public class Engine {
 //        RenderManager.prepare(ECSWorld.findGameObjectByTag("Camera"));
     }
 
-    public static void start(String path, boolean build) throws Exception {
+    public static void start() throws Exception {
         if (started) {
             return;
         }
 
         started = true;
-        isBuild = build;
 //        AssetManager.init(path);
 //        LogCapture.start();
 //        Executors.newSingleThreadExecutor().execute(new ScriptManager());
@@ -65,7 +64,7 @@ public class Engine {
 //        ScriptManager.compileAll(AssetManager.getINSTANCE().getScriptDirectory());
 //        EditorLayer.getINSTANCE().initComponentList();
 
-        windowManager.loop(shader, build);
+        windowManager.loop(shader);
     }
 
 
