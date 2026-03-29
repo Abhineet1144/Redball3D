@@ -27,7 +27,7 @@ public class BatchRenderer {
 
     public BatchRenderer(List<MeshRenderer> meshRendererList) {
         this.meshRendererList = meshRendererList;
-        this.shader = new Shader(AssetPool.getVertexShaderSource(), AssetPool.getFragmentShaderSource());
+        this.shader = new Shader(AssetPool.getVertexShader(), AssetPool.getFragmentShader());
     }
 
     public int renderAll() {

@@ -41,7 +41,7 @@ public class GameScene extends AbstractScene {
         camera.addComponent(new CameraComponent(1920, 1080));
 
         // shader
-        shader = new Shader(AssetPool.getVertexShaderSource(), AssetPool.getFragmentShaderSource());
+        shader = new Shader(AssetPool.getVertexShader(), AssetPool.getFragmentShader());
 
         // load model
         List<ModelLoader.Mesh> meshes = ModelLoader.loadModel("res/backpack/backpack.obj");
