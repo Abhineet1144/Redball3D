@@ -11,7 +11,7 @@ public class AssetPool {
 
     public static String getFragmentShader() {
         try {
-            return new String(IOUtils.toByteArray(new FileInputStream(VERTEX_SHADER_SRC)));
+            return new String(IOUtils.toByteArray(new FileInputStream(FRAGMENT_SHADER_SRC)));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -19,7 +19,7 @@ public class AssetPool {
 
     public static String getVertexShader() {
         try {
-            return new String(IOUtils.toByteArray(new FileInputStream(FRAGMENT_SHADER_SRC)));
+            return new String(IOUtils.toByteArray(new FileInputStream(VERTEX_SHADER_SRC)));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
