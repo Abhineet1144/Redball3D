@@ -1,28 +1,23 @@
 package engine.entity.components;
 
+import engine.renderer.Camera;
 import org.joml.Matrix4f;
-import org.joml.Vector2f;
-import redball.engine.renderer.Camera;
-
-import java.io.Serial;
+import org.joml.Vector3f;
 
 // CameraComponent.java
 public class CameraComponent extends Component {
-    @Serial
-    private static final long serialVersionUID = 1L;
-
     public Camera camera;
     public boolean isMain;
 
     public CameraComponent(int width, int height) {
-        this.camera = new Camera(new Vector2f(0, 0));
+        this.camera = new Camera(new Vector3f(0, 0, 0));
         this.camera.adjustProjection(width, height);
         this.isMain = true;
     }
 
     @Override
     public void update(float dt) {
-        camera.setPosition(new Vector2f(gameObject.getComponent(Transform.class).position.x, gameObject.getComponent(Transform.class).position.y));
+        camera.setPosition(new Vector3f(gameObject.getComponent(Transform.class).position.x, gameObject.getComponent(Transform.class).position.y, gameObject.getComponent(Transform.class).position.z));
     }
 
     public Matrix4f getViewMatrix() {

@@ -64,7 +64,7 @@ public class Engine {
 //        ScriptManager.compileAll(AssetManager.getINSTANCE().getScriptDirectory());
 //        EditorLayer.getINSTANCE().initComponentList();
 
-        windowManager.loop(shader);
+        windowManager.loop();
     }
 
 

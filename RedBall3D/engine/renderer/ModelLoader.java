@@ -1,5 +1,6 @@
 package engine.renderer;
 
+import engine.entity.components.MeshRenderer.Vertex;
 import org.lwjgl.assimp.*;
 
 import java.io.File;
@@ -26,28 +27,6 @@ public class ModelLoader {
         }
     }
 
-    public static class Vertex {
-        public float x, y, z;
-        public float r, g, b, a;
-        public float xt, yt;
-        public float nx, ny, nz;  // ADD NORMALS
-
-        public Vertex(float x, float y, float z, float r, float g, float b, float a, float xt, float yt, float nx, float ny, float nz) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.r = r;
-            this.g = g;
-            this.b = b;
-            this.a = a;
-            this.xt = xt;
-            this.yt = yt;
-            this.nx = nx;
-            this.ny = ny;
-            this.nz = nz;
-        }
-    }
-
     public static class Mesh {
         public Vertex[] vertices;
         public int[] indices;
@@ -63,7 +42,7 @@ public class ModelLoader {
     public static List<Mesh> loadModel(String path) {
         AIScene scene = aiImportFile(path,
                 aiProcess_Triangulate |
-                        aiProcess_FlipUVs |
+                        aiProcess_FlipUVs |               // Flip texture coordinates vertically
                         aiProcess_GenNormals |
                         aiProcess_JoinIdenticalVertices
         );

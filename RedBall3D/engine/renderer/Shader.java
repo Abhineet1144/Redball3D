@@ -1,14 +1,13 @@
 package engine.renderer;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL20;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL20.glCreateProgram;
 
 public class Shader {
     private final int ID;
@@ -58,12 +57,6 @@ public class Shader {
         glUseProgram(ID);
     }
 
-    public void initTextureSamplers() {
-        int loc = GL20.glGetUniformLocation(getID(), "u_Textures");
-        int[] samplers = { 0, 1, 2, 3, 4, 5, 6, 7 };
-        GL20.glUniform1iv(loc, samplers);
-    }
-
     public int getID() {
         return ID;
     }
@@ -74,8 +67,23 @@ public class Shader {
         glUniformMatrix4fv(glGetUniformLocation(ID, name), false, matrixBuffer);
     }
 
-    public void uploadInt(String name, int value) {
-        int location = glGetUniformLocation(ID, name);
-        glUniform1i(location, value);
+    public void setInt(String name, int value) {
+        glUniform1i(glGetUniformLocation(ID, name), value);
+    }
+
+    public void setFloat(String name, float value) {
+        glUniform1f(glGetUniformLocation(ID, name), value);
+    }
+
+    public void setBool(String name, boolean value) {
+        glUniform1i(glGetUniformLocation(ID, name), value ? 1 : 0);
+    }
+
+    public void setVec3(String name, float x, float y, float z) {
+        glUniform3f(glGetUniformLocation(ID, name), x, y, z);
+    }
+
+    public void setVec3(String name, Vector3f value) {
+        glUniform3f(glGetUniformLocation(ID, name), value.x, value.y, value.z);
     }
 }

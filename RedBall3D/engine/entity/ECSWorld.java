@@ -1,8 +1,6 @@
 package engine.entity;
 
 import engine.entity.components.*;
-import engine.entity.components.Tag;
-import engine.renderer.RenderManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,16 +20,6 @@ public class ECSWorld {
     public static GameObject findGameObjectByName(String name) {
         for (GameObject g : gameObjects) {
             if (g.getName().equals(name)) return g;
-        }
-        return null;
-    }
-
-    public static GameObject findGameObjectByTag(String tag) {
-        for (GameObject g : gameObjects) {
-            Tag gTag = g.getComponent(Tag.class);
-            if (gTag != null) {
-                if (gTag.getTag().equals(tag)) return g;
-            }
         }
         return null;
     }
@@ -61,29 +49,8 @@ public class ECSWorld {
         return removeGameObject(go);
     }
 
-    public static boolean removeGameObjectByTag(String tag) {
-        GameObject go = findGameObjectByTag(tag);
-        if (go == null) {
-            assert false : "FAILED: TO REMOVE GAMEOBJECT, IS NULL";
-            return false;
-        }
-        return removeGameObject(go);
-    }
-
     public static void removeAll() {
         gameObjects = new ArrayList<>();
-    }
-
-    public static void update(GameObject camera, float dt) {
-        camera.update(dt);
-        for (GameObject g : gameObjects) {
-            g.update(dt);
-        }
-        if (!pendingAdd.isEmpty()) {
-            gameObjects.addAll(pendingAdd);
-            pendingAdd.clear();
-            RenderManager.rebuild();
-        }
     }
 
     public static void start() {
