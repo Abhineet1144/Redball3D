@@ -7,7 +7,6 @@ import java.util.List;
 
 public class ECSWorld {
     private static List<GameObject> gameObjects = new ArrayList<>();
-    private static final List<GameObject> pendingAdd = new ArrayList<>();
 
     public ECSWorld() {}
 
@@ -36,34 +35,15 @@ public class ECSWorld {
         return false;
     }
 
-    public static void clearGameObjects() {
-        gameObjects = new ArrayList<>();
-    }
-
-    public static boolean removeGameObject(String name) {
-        GameObject go = findGameObjectByName(name);
-        if (go == null) {
-            assert false : "FAILED: TO REMOVE GAMEOBJECT, IS NULL";
-            return false;
-        }
-        return removeGameObject(go);
-    }
-
-    public static void removeAll() {
-        gameObjects = new ArrayList<>();
-    }
-
     public static void start() {
         for (GameObject g : gameObjects) {
             g.start();
         }
     }
 
-    public static List<GameObject> getGameObjects() {
-        return gameObjects;
-    }
-
-    public static void setGameObjects(List<GameObject> gameObjects) {
-        ECSWorld.gameObjects = gameObjects;
+    public static void update(float delaTime) {
+        for (GameObject g : gameObjects) {
+            g.update(delaTime);
+        }
     }
 }

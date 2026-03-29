@@ -1,118 +1,155 @@
-//package engine.scene;
-//
-//import engine.entity.ECSWorld;
-//import engine.entity.GameObject;
-//import engine.entity.components.MeshRenderer;
-//import engine.entity.components.Transform3D;
-//import engine.renderer.*;
-//import engine.renderer.mesh.MeshBatchRenderer;
-//import org.joml.Vector3f;
-//
-//import java.util.List;
-//
-///**
-// * Default 3-D scene.
-// *
-// * Contents
-// * --------
-// *   • Red ball   – procedural UV-sphere, spins 30 deg/sec
-// *   • Ground     – grey plane
-// *   • Orbiting point-light (white)
-// *
-// * To use a real OBJ file instead of the procedural sphere, set:
-// *   ballMesh.modelPath = "assets/redball.obj";
-// * and remove the uploadProceduralMesh() call for that object.
-// * RenderManager3D.prepare() will pick up the path automatically.
-// */
-//public class GameScene extends AbstractScene {
-//
-//    private Camera3D     camera;
-//    private Transform3D  ballTransform;
-//    private float        lightAngle = 0f;
-//
-//    private static final float SPIN_SPEED    = 30f;   // degrees/sec
-//    private static final float LIGHT_RADIUS  = 10f;
-//    private static final float LIGHT_HEIGHT  = 8f;
-//    private static final float LIGHT_SPEED   = 45f;   // degrees/sec
-//
-//    @Override public String getName() { return "GameScene"; }
-//
-//    // -------------------------------------------------------------------------
-//
-//    @Override
-//    public void init() {
-//        System.out.println("[GameScene] init()");
-//
-//        // ── camera ────────────────────────────────────────────────────────────
-//        camera = new Camera3D();
-//        camera.setOrbitDistance(7f);
-//        camera.orbit(0f, 15f);
-//        WindowManager.setCamera3D(camera);
-//
-//        // ── red ball ──────────────────────────────────────────────────────────
-//        GameObject ball = ECSWorld.createGameObject("RedBall");
-//
-//        ballTransform = new Transform3D(
-//                new Vector3f(0f, 1f, 0f),
-//                new Vector3f(0f, 0f, 0f),
-//                new Vector3f(1f, 1f, 1f)
-//        );
-//        ball.addComponent(ballTransform);
-//
-//        MeshRenderer ballMesh = new MeshRenderer("");
-//        uploadProcedural(ballMesh,
-//                ProceduralMeshFactory.sphere(64, 32, 1f, 0.85f, 0.08f, 0.08f));
-//        ball.addComponent(ballMesh);
-//
-//        // ── ground plane ──────────────────────────────────────────────────────
-//        GameObject ground = ECSWorld.createGameObject("Ground");
-//        ground.addComponent(new Transform3D());          // identity transform
-//
-//        MeshRenderer groundMesh = new MeshRenderer("");
-//        uploadProcedural(groundMesh,
-//                ProceduralMeshFactory.plane(16f, 16f, 0.22f, 0.22f, 0.25f));
-//        ground.addComponent(groundMesh);
-//
-//        // ── light ─────────────────────────────────────────────────────────────
-//        RenderManager3D.lightColor.set(1f, 0.95f, 0.88f);
-//        syncLight();
-//
-//        System.out.println("[GameScene] init() done.");
-//    }
-//
-//    @Override
-//    public void update(float dt) {
-//        // spin the ball
-//        ballTransform.rotate(0f, SPIN_SPEED * dt, 0f);
-//
-//        // orbit the light
-//        lightAngle = (lightAngle + LIGHT_SPEED * dt) % 360f;
-//        syncLight();
-//    }
-//
-//    @Override
-//    public void cleanup() {
-//        System.out.println("[GameScene] cleanup()");
-//    }
-//
-//    // ── helpers ───────────────────────────────────────────────────────────────
-//
-//    /**
-//     * Upload a procedural mesh list directly into a MeshRenderer,
-//     * without going through the file-path code in RenderManager3D.prepare().
-//     */
-//    private static void uploadProcedural(MeshRenderer mr,
-//                                         List<ModelLoader.Mesh> meshes) {
-//        MeshBatchRenderer batch = new MeshBatchRenderer();
-//        batch.upload(meshes).forEach(mr::addHandle);
-//    }
-//
-//    private void syncLight() {
-//        float rad = (float) Math.toRadians(lightAngle);
-//        RenderManager3D.lightPosition.set(
-//                LIGHT_RADIUS * (float) Math.cos(rad),
-//                LIGHT_HEIGHT,
-//                LIGHT_RADIUS * (float) Math.sin(rad)
-//        );
-//    }
-//}
+package engine.scene;
+
+import engine.entity.ECSWorld;
+import engine.entity.GameObject;
+import engine.entity.components.CameraComponent;
+import engine.entity.components.MeshRenderer;
+import engine.entity.components.MeshRenderer.Vertex;
+import engine.entity.components.Transform;
+import engine.renderer.*;
+import engine.utils.AssetPool;
+
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.lwjgl.glfw.GLFW.glfwGetTime;
+import static org.lwjgl.opengl.GL33.*;
+
+public class GameScene extends AbstractScene {
+
+    private Shader shader;
+    private GameObject camera;
+    private GameObject obj;
+    private Texture diffuseTexture;
+    private Texture normalTexture;
+    private Texture specularTexture;
+    private int vao;
+    private int totalIndices;
+
+    @Override
+    public void start() {
+        // camera
+        camera = ECSWorld.createGameObject("Camera");
+        camera.addComponent(new Transform(new Vector3f(0.0f, 0.0f, -20.0f), new Vector3f(), new Vector3f()));
+        camera.addComponent(new CameraComponent(1920, 1080));
+
+        // shader
+        shader = new Shader(AssetPool.getVertexShaderSource(), AssetPool.getFragmentShaderSource());
+
+        // load model
+        List<ModelLoader.Mesh> meshes = ModelLoader.loadModel("res/backpack/backpack.obj");
+        Vertex[] vertices = new Vertex[49041];
+        int[] indices = new int[203721];
+        Map<String, Texture> textureCache = new HashMap<>();
+        int vCount = 0;
+        int iCount = 0;
+        Texture texture = null;
+
+        for (int i = 0; i < meshes.size(); i++) {
+            ModelLoader.Mesh mesh = meshes.get(i);
+            int vertexOffset = vCount;
+
+            String diffusePath = mesh.material.diffuseMap;
+            if (diffusePath != null && !textureCache.containsKey(diffusePath)) {
+                textureCache.put(diffusePath, new Texture(diffusePath));
+                diffuseTexture = textureCache.get(diffusePath);
+            }
+
+            String normalPath = mesh.material.normalMap;
+            if (normalPath != null && !textureCache.containsKey(normalPath)) {
+                textureCache.put(normalPath, new Texture(normalPath));
+                normalTexture = textureCache.get(normalPath);
+            }
+
+            String specularPath = mesh.material.specularMap;
+            if (specularPath != null && !textureCache.containsKey(specularPath)) {
+                textureCache.put(specularPath, new Texture(specularPath));
+                specularTexture = textureCache.get(specularPath);
+            }
+
+            texture = textureCache.getOrDefault(diffusePath, new Texture("res/container.jpg"));
+
+            for (Vertex vertex : mesh.vertices) vertices[vCount++] = vertex;
+            for (int index : mesh.indices) indices[iCount++] = index + vertexOffset;
+        }
+
+        if (diffuseTexture == null)  diffuseTexture  = new Texture("res/container.jpg");
+        if (normalTexture == null)   normalTexture   = diffuseTexture;
+        if (specularTexture == null) specularTexture = diffuseTexture;
+
+        obj = ECSWorld.createGameObject("Mesh_BackPack");
+        obj.addComponent(new MeshRenderer(vertices, indices, texture));
+
+        List<MeshRenderer> renderers = new ArrayList<>();
+        renderers.add(obj.getComponent(MeshRenderer.class));
+
+        BatchRenderer batch = new BatchRenderer(renderers);
+        vao = batch.renderAll();
+        totalIndices = obj.getComponent(MeshRenderer.class).eboVal.length;
+    }
+
+    @Override
+    public void update(float dt) {
+        shader.use();
+
+        // bind textures
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseTexture.getTexID());
+        shader.setInt("diffuseMap", 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, normalTexture.getTexID());
+        shader.setInt("normalMap", 1);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, specularTexture.getTexID());
+        shader.setInt("specularMap", 2);
+
+        // matrices
+        shader.setMat4f("view", camera.getComponent(CameraComponent.class).getViewMatrix());
+        shader.setMat4f("projection", camera.getComponent(CameraComponent.class).getProjectionMatrix());
+
+        // transform
+        Matrix4f trans = new Matrix4f();
+        trans.translate(0.0f, 0.0f, 5.0f);
+        trans.rotate((float) glfwGetTime(), 0.0f, 1.0f, 0.0f);
+        trans.scale(1.0f);
+        shader.setMat4f("transform", trans);
+
+        // lights
+        shader.setVec3("lights[0].position", 0.0f, 5.0f, 2.0f);
+        shader.setVec3("lights[0].ambient",  0.3f, 0.1f, 0.0f);
+        shader.setVec3("lights[0].diffuse",  1.0f, 0.4f, 0.0f);
+        shader.setVec3("lights[0].specular", 1.0f, 0.5f, 0.0f);
+
+        shader.setVec3("lights[1].position", 0.0f, -5.0f, 2.0f);
+        shader.setVec3("lights[1].ambient",  0.0f, 0.0f, 0.2f);
+        shader.setVec3("lights[1].diffuse",  0.0f, 0.3f, 1.0f);
+        shader.setVec3("lights[1].specular", 0.0f, 0.4f, 1.0f);
+
+        // camera movement
+        float speed = 20.0f;
+        Transform t = camera.getComponent(Transform.class);
+
+        if (WindowManager.isKeyDown(GLFW.GLFW_KEY_RIGHT))
+            t.setXPosition(t.getXPosition() - speed * dt);
+        if (WindowManager.isKeyDown(GLFW.GLFW_KEY_LEFT))
+            t.setXPosition(t.getXPosition() + speed * dt);
+        if (WindowManager.isKeyDown(GLFW.GLFW_KEY_UP))
+            t.setZPosition(t.getZPosition() + speed * dt);
+        if (WindowManager.isKeyDown(GLFW.GLFW_KEY_DOWN))
+            t.setZPosition(t.getZPosition() - speed * dt);
+
+        ECSWorld.update(dt);
+
+        // draw
+        glBindVertexArray(vao);
+        glDrawElements(GL_TRIANGLES, totalIndices, GL_UNSIGNED_INT, 0L);
+    }
+}
