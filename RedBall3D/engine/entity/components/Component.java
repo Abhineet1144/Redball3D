@@ -1,6 +1,6 @@
-package redball.engine.entity.components;
+package engine.entity.components;
 
-import redball.engine.entity.GameObject;
+import engine.entity.GameObject;
 
 import java.io.Serializable;
 

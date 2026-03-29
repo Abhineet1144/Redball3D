@@ -1,4 +1,4 @@
-package redball.engine.entity.components;
+package engine.entity.components;
 
 import org.dyn4j.geometry.Convex;
 import org.dyn4j.geometry.Geometry;

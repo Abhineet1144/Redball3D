@@ -1,10 +1,10 @@
 package engine.core;
 
+import engine.entity.ECSWorld;
+import engine.entity.GameObject;
 import engine.renderer.Shader;
 import engine.renderer.WindowManager;
 import engine.utils.AssetPool;
-
-import java.util.concurrent.Executors;
 
 public class Engine {
     private static boolean started = false;
@@ -78,5 +78,9 @@ public class Engine {
 
     public static boolean isPlaying() {
         return isPlaying;
+    }
+
+    public static GameObject createEmptyObject(String name) {
+        return ECSWorld.createGameObject(name);
     }
 }

@@ -1,31 +1,21 @@
 package engine.entity;
 
-import redball.engine.entity.components.Component;
+import engine.entity.components.Component;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 
 public class GameObject implements Serializable {
-    // Name of the gameobject
-    private String name;
     private static final long serialVersionUID = 1L;
-    // List of all components
+
+    private String name;
     private ArrayList<Component> components;
 
-    /**
-     * @description Creates new gameobject of given name.
-     * @param name of the object.
-     */
     public GameObject(String name) {
         this.name = name;
         components = new ArrayList<>();
     }
 
-    /**
-     * @description gets a component from a gameobject.
-     * @param componentClass type of component.
-     * @return the component.
-     */
     public <T extends Component> T getComponent(Class<T> componentClass) {
         for (Component c : components) {
             try {
@@ -40,11 +30,6 @@ public class GameObject implements Serializable {
         return null;
     }
 
-    /**
-     * @description removes a component from a gameobject
-     * @param componentClass type of component.
-     * @return true if success else false
-     */
     public <T extends Component> boolean removeComponent(Class<T> componentClass) {
         for (Component c : components) {
             if (componentClass.isInstance(c)) {
@@ -55,11 +40,6 @@ public class GameObject implements Serializable {
         return false;
     }
 
-
-    /**
-     * @description adds a component to a gameobject
-     * @param c type of component
-     */
     public <T extends Component> T addComponent(Component c) {
         if (c == null) {
             return null;
@@ -70,10 +50,6 @@ public class GameObject implements Serializable {
         return (T) getComponent(c.getClass());
     }
 
-    /**
-     * @description updates the gameobject (called every frame)
-     * @param dt delta time
-     */
     public void update(float dt) {
         for (Component c : components) {
             try {
@@ -84,9 +60,6 @@ public class GameObject implements Serializable {
         }
     }
 
-    /**
-     * @description initializes the gameobjects (called once, in first frame)
-     */
     public void start() {
         for (Component c : components) {
             try {
@@ -97,9 +70,6 @@ public class GameObject implements Serializable {
         }
     }
 
-    /**
-     * @return the name of a gameobject
-     */
     public String getName() {
         return name;
     }

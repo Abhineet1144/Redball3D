@@ -1,4 +1,4 @@
-package redball.engine.entity.components;
+package engine.entity.components;
 
 import redball.engine.renderer.texture.Texture;
 

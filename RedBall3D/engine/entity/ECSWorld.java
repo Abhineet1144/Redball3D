@@ -1,40 +1,24 @@
 package engine.entity;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.SerializationUtils;
-import org.joml.Vector2f;
-import engine.core.Engine;
 import engine.entity.components.*;
-import engine.renderer.BatchRenderer;
+import engine.entity.components.Tag;
 import engine.renderer.RenderManager;
-import engine.renderer.texture.TextureManager;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ECSWorld {
-    // List of all gameobjects
     private static List<GameObject> gameObjects = new ArrayList<>();
     private static final List<GameObject> pendingAdd = new ArrayList<>();
 
     public ECSWorld() {}
 
-    /**
-     * @description Creates new gameobject of given name.
-     * @param name of the object.
-     * @return the created gameobject
-     */
     public static GameObject createGameObject(String name) {
         GameObject go = new GameObject(name);
         gameObjects.add(go);
         return go;
     }
 
-    /**
-     * @description finds gameobject by given name
-     * @param name of the object
-     * @return gameobject if found else null
-     */
     public static GameObject findGameObjectByName(String name) {
         for (GameObject g : gameObjects) {
             if (g.getName().equals(name)) return g;
@@ -42,11 +26,6 @@ public class ECSWorld {
         return null;
     }
 
-    /**
-     * @description finds gameobject by given tag
-     * @param tag of the object
-     * @return gameobject if found else null
-     */
     public static GameObject findGameObjectByTag(String tag) {
         for (GameObject g : gameObjects) {
             Tag gTag = g.getComponent(Tag.class);
@@ -57,11 +36,6 @@ public class ECSWorld {
         return null;
     }
 
-    /**
-     * @description removes given gameobject
-     * @param gameObject we want to remove
-     * @return true if found else false
-     */
     public static boolean removeGameObject(GameObject gameObject) {
         for (GameObject g : gameObjects) {
             if (g.equals(gameObject)) {
@@ -78,11 +52,6 @@ public class ECSWorld {
         gameObjects = new ArrayList<>();
     }
 
-    /**
-     * @description removes gameobject by given name
-     * @param name of gameobject
-     * @return true if found else false
-     */
     public static boolean removeGameObject(String name) {
         GameObject go = findGameObjectByName(name);
         if (go == null) {
@@ -92,11 +61,6 @@ public class ECSWorld {
         return removeGameObject(go);
     }
 
-    /**
-     * @description removes gameobject by given tag
-     * @param tag of gameobject
-     * @return true if found else false
-     */
     public static boolean removeGameObjectByTag(String tag) {
         GameObject go = findGameObjectByTag(tag);
         if (go == null) {
@@ -110,10 +74,6 @@ public class ECSWorld {
         gameObjects = new ArrayList<>();
     }
 
-    /**
-     * @description updates all gameobjects
-     * @param dt delta time
-     */
     public static void update(GameObject camera, float dt) {
         camera.update(dt);
         for (GameObject g : gameObjects) {
