@@ -50,12 +50,11 @@ public class BatchRenderer {
                 verticesDataList.add(vertex.a);
                 verticesDataList.add(vertex.xt);
                 verticesDataList.add(vertex.yt);
-                verticesDataList.add(vertex.nx);  // ADD NORMALS
+                verticesDataList.add(vertex.nx);
                 verticesDataList.add(vertex.ny);
                 verticesDataList.add(vertex.nz);
             }
 
-            // Add indices (offset by current vertex count)
             for (int i : meshRenderer.eboVal) {
                 vertexIndexList.add(currentVertexCount + i);
             }

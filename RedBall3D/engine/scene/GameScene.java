@@ -7,6 +7,7 @@ import engine.entity.components.MeshRenderer;
 import engine.entity.components.MeshRenderer.Vertex;
 import engine.entity.components.Transform;
 import engine.renderer.*;
+import engine.renderer.texture.Texture;
 import engine.utils.AssetPool;
 
 import org.joml.Matrix4f;

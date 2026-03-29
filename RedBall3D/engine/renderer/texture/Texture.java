@@ -1,21 +1,34 @@
-package engine.renderer;
+package engine.renderer.texture;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL20;
 import org.lwjgl.stb.STBImage;
 
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.glBindTexture;
+import static org.lwjgl.opengl.GL13.glActiveTexture;
+
 public class Texture {
-    private String filePath;
+    private static int usedTexSlots = 1;
+    private static int maxSlots = GL11.glGetInteger(GL20.GL_MAX_TEXTURE_IMAGE_UNITS);
+    private static int[] texSlots = new int[maxSlots];
+
+    private int texSlot;
+    private int usedTexSlot;
     private int texId;
+    private int width;
+    private int height;
+    private String filePath;
 
     public Texture(String filePath) {
         this.filePath = filePath;
 
         texId = GL11.glGenTextures();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texId);
+        glBindTexture(GL11.GL_TEXTURE_2D, texId);
 
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
@@ -37,11 +50,37 @@ public class Texture {
         }
     }
 
+
+    public void bindTexture() {
+        glActiveTexture(texSlot);
+        glBindTexture(GL_TEXTURE_2D, texId);
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
     public int getTexID() {
         return texId;
     }
 
+    public int getTexSlot() {
+        return texSlot;
+    }
+
+    public int getUsedTexSlot() {
+        return usedTexSlot;
+    }
+
     public String getFilePath() {
         return filePath;
+    }
+
+    public static void resetSlotCounter() {
+        usedTexSlots = 1;
     }
 }

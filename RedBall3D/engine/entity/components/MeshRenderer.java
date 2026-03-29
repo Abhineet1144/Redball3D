@@ -1,6 +1,6 @@
 package engine.entity.components;
 
-import engine.renderer.Texture;
+import engine.renderer.texture.Texture;
 
 public class MeshRenderer extends Component {
     public Vertex[] vertices;
