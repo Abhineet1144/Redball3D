@@ -1,29 +1,18 @@
 package engine.entity.components;
 
+import engine.renderer.ModelLoader;
 import engine.renderer.texture.Texture;
 
 public class MeshRenderer extends Component {
-    public Vertex[] vertices;
-    public int[] eboVal;
-    private Texture texture;
+    public ModelLoader.ModelData data;
 
-    public MeshRenderer(Vertex[] vertices, int[] eboVal, Texture texture) {
-        this.vertices = vertices;
-        this.eboVal = eboVal;
-        this.texture = texture;
+    public MeshRenderer(ModelLoader.ModelData data) {
+        this.data = data;
     }
 
     @Override
     public void update(float dt) {
 
-    }
-
-    public Texture getTexture() {
-        return texture;
-    }
-
-    public void setTexture(Texture texture) {
-        this.texture = texture;
     }
 
     public static class Vertex {

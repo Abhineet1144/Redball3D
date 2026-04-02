@@ -7,6 +7,10 @@ import org.joml.Vector3f;
 public class Camera {
     private Matrix4f projection, view;
     private Vector3f position;
+    private Vector3f front = new Vector3f(0.0f, 0.0f, -1.0f);
+    private float yaw = -90.0f;
+    private float pitch = 0.0f;
+
 
     public Camera(Vector3f position) {
         this.position = position;
@@ -24,13 +28,18 @@ public class Camera {
         );
     }
 
+    public void updateFront() {
+        front.x = (float)(Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
+        front.y = (float)(Math.sin(Math.toRadians(pitch)));
+        front.z = (float)(Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
+        front.normalize();
+    }
+
     public Matrix4f getViewMat() {
         Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
-        Vector3f eye = new Vector3f(position.x, position.y, position.z);
-        Vector3f target = new Vector3f(position.x, position.y, 0.0f);
-
+        Vector3f target = new Vector3f(position).add(front); // always look ahead
         view.identity();
-        view = view.lookAt(eye, target, cameraUp);
+        view = view.lookAt(position, target, cameraUp);
         return view;
     }
 

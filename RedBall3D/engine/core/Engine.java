@@ -20,7 +20,7 @@ public class Engine {
         windowManager.init(scene);
 
         shader = new Shader(AssetPool.getVertexShader(), AssetPool.getFragmentShader());
-        windowManager.loop();
+        windowManager.loop(shader);
     }
 
     public static WindowManager getWindowManager() {

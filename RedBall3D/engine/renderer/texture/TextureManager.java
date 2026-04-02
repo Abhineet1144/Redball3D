@@ -21,12 +21,6 @@ public class TextureManager {
         return textureMap.keySet();
     }
 
-    public static void bindTextures() {
-        for (Texture texture : textureMap.values()) {
-            texture.bindTexture();
-        }
-    }
-
     public static void clear() {
         textureMap.clear();
         Texture.resetSlotCounter();

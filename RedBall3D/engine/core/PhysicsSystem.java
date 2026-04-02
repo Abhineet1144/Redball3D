@@ -1,4 +1,4 @@
-package redball.engine.core;
+package engine.core;
 
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.world.World;

@@ -46,4 +46,8 @@ public class ECSWorld {
             g.update(delaTime);
         }
     }
+
+    public static List<GameObject> getGameObjects() {
+        return gameObjects;
+    }
 }

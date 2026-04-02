@@ -3,8 +3,12 @@ package engine.renderer;
 import java.util.ArrayList;
 import java.util.List;
 
+import engine.entity.GameObject;
 import engine.entity.components.MeshRenderer;
+import engine.entity.components.Transform;
+import engine.renderer.texture.Texture;
 import engine.utils.AssetPool;
+import org.joml.Vector4f;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -12,38 +16,63 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 public class BatchRenderer {
+    public static final int MAX_ENTITIES = 1000;
     private static final int POS_SIZE = 3 * Float.BYTES;
     private static final int COLOR_SIZE = 4 * Float.BYTES;
     private static final int TEXTURE_MAP_SIZE = 2 * Float.BYTES;
     private static final int NORMAL_SIZE = 3 * Float.BYTES;  // ADD THIS
     private static final int OVERALL_SIZE = POS_SIZE + COLOR_SIZE + TEXTURE_MAP_SIZE + NORMAL_SIZE;  // UPDATED!
     private Shader shader;
-    private List<MeshRenderer> meshRendererList;
+    private List<GameObject> entities;
+    private float[] verticesData = new float[OVERALL_SIZE * MAX_ENTITIES * 4];
 
-    // Use ArrayLists for dynamic sizing
+    private List<Texture> diffuseTextures = new ArrayList<>();
+    private List<Texture> normalTextures = new ArrayList<>();
+    private List<Texture> specularTextures = new ArrayList<>();
+
+    public int entityCount = 0;
     private List<Float> verticesDataList = new ArrayList<>();
     private List<Integer> vertexIndexList = new ArrayList<>();
     private int highest = 0;
+    private int indexCount;
+    private int vao;
 
-    public BatchRenderer(List<MeshRenderer> meshRendererList) {
-        this.meshRendererList = meshRendererList;
+    public BatchRenderer(List<GameObject> go) {
         this.shader = new Shader(AssetPool.getVertexShader(), AssetPool.getFragmentShader());
+
+        entities = new ArrayList<>();
+        for (GameObject g : go) {
+            if (g.getComponent(MeshRenderer.class) != null) {
+                entities.add(g);
+            }
+        }
+        entityCount = entities.size();
     }
 
-    public int renderAll() {
+    public int updateAllVertices() {
         verticesDataList.clear();
         vertexIndexList.clear();
         highest = 0;
 
         int currentVertexCount = 0;
 
-        for (MeshRenderer meshRenderer : meshRendererList) {
-            // Add vertices
-            for (int i = 0; i < meshRenderer.vertices.length; i++) {
-                MeshRenderer.Vertex vertex = meshRenderer.vertices[i];
-                verticesDataList.add(vertex.x);
-                verticesDataList.add(vertex.y);
-                verticesDataList.add(vertex.z);
+        for (GameObject go : entities) {
+            MeshRenderer mr = go.getComponent(MeshRenderer.class);
+
+            if (mr.data.diffusePath != null) diffuseTextures.add(new Texture(mr.data.diffusePath));
+            if (mr.data.normalPath != null) normalTextures.add(new Texture(mr.data.normalPath));
+            if (mr.data.specularPath != null) specularTextures.add(new Texture(mr.data.specularPath));
+
+            indexCount += mr.data.indices.length;
+
+            for (int i = 0; i < mr.data.vertices.length; i++) {
+                MeshRenderer.Vertex vertex = mr.data.vertices[i];
+                Transform transform = go.getComponent(Transform.class);
+                Vector4f result = transform.getMatrix().transform(new Vector4f(vertex.x, vertex.y, vertex.z, 1));
+
+                verticesDataList.add(result.x);
+                verticesDataList.add(result.y);
+                verticesDataList.add(result.z);
                 verticesDataList.add(vertex.r);
                 verticesDataList.add(vertex.g);
                 verticesDataList.add(vertex.b);
@@ -55,11 +84,11 @@ public class BatchRenderer {
                 verticesDataList.add(vertex.nz);
             }
 
-            for (int i : meshRenderer.eboVal) {
+            for (int i : mr.data.indices) {
                 vertexIndexList.add(currentVertexCount + i);
             }
 
-            currentVertexCount += meshRenderer.vertices.length;
+            currentVertexCount += mr.data.vertices.length;
         }
 
         // Convert ArrayLists to arrays
@@ -101,7 +130,41 @@ public class BatchRenderer {
         glVertexAttribPointer(3, 3, GL_FLOAT, false, OVERALL_SIZE, 9 * Float.BYTES);
         glEnableVertexAttribArray(3);
 
-
         return vao;
+    }
+
+    public void prepare() {
+        vao = updateAllVertices();
+    }
+
+    // Planning to add Texture Atlas: Combine all your textures into one big texture and offset the UVs per model. Complex to set up.
+    public void render(Shader shader) {
+        shader.use();
+        int indexOffset = 0;
+
+        for (int i = 0; i < entities.size(); i++) {
+            MeshRenderer mr = entities.get(i).getComponent(MeshRenderer.class);
+
+            // Bind this model's textures
+            if (i < diffuseTextures.size()) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, diffuseTextures.get(i).getTexID());
+                shader.setInt("diffuseMap", 0);
+            }
+            if (i < normalTextures.size()) {
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, normalTextures.get(i).getTexID());
+                shader.setInt("normalMap", 1);
+            }
+            if (i < specularTextures.size()) {
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, specularTextures.get(i).getTexID());
+                shader.setInt("specularMap", 2);
+            }
+
+            glBindVertexArray(vao);
+            glDrawElements(GL_TRIANGLES, mr.data.indices.length, GL_UNSIGNED_INT, (long) indexOffset * Integer.BYTES);
+            indexOffset += mr.data.indices.length;
+        }
     }
 }

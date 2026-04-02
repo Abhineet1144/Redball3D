@@ -1,6 +1,7 @@
 package engine.renderer;
 
 import engine.entity.components.MeshRenderer.Vertex;
+import engine.renderer.texture.Texture;
 import org.lwjgl.assimp.*;
 
 import java.io.File;
@@ -12,6 +13,10 @@ import java.util.Map;
 import static org.lwjgl.assimp.Assimp.*;
 
 public class ModelLoader {
+    public static ModelData ModelData;
+    private static Texture diffuseTexture = null;
+    private Texture normalTexture = null;
+    private Texture specularTexture = null;
 
     public static class Material {
         public String diffuseMap;
@@ -39,10 +44,26 @@ public class ModelLoader {
         }
     }
 
-    public static List<Mesh> loadModel(String path) {
+    public static class ModelData {
+        public Vertex[] vertices;
+        public int[] indices;
+        public String diffusePath;
+        public String normalPath;
+        public String specularPath;
+
+        public ModelData(Vertex[] vertices, int[] indices, String diffusePath, String normalPath, String specularPath) {
+            this.vertices = vertices;
+            this.indices = indices;
+            this.diffusePath = diffusePath;
+            this.normalPath = normalPath;
+            this.specularPath = specularPath;
+        }
+    }
+
+    public static ModelData loadModel(String path) {
         AIScene scene = aiImportFile(path,
                 aiProcess_Triangulate |
-                        aiProcess_FlipUVs |               // Flip texture coordinates vertically
+                        aiProcess_FlipUVs |
                         aiProcess_GenNormals |
                         aiProcess_JoinIdenticalVertices
         );
@@ -54,21 +75,40 @@ public class ModelLoader {
         String modelDir = new File(path).getParent();
         if (modelDir == null) modelDir = "";
 
-        // Load all materials
         Map<Integer, Material> materials = loadMaterials(scene, modelDir);
 
         List<Mesh> meshes = new ArrayList<>();
-        int numMeshes = scene.mNumMeshes();
+        List<Vertex> allVertices = new ArrayList<>();
+        List<Integer> allIndices = new ArrayList<>();
 
+        int numMeshes = scene.mNumMeshes();
         for (int i = 0; i < numMeshes; i++) {
             AIMesh aiMesh = AIMesh.create(scene.mMeshes().get(i));
             int materialIndex = aiMesh.mMaterialIndex();
             Material material = materials.getOrDefault(materialIndex, new Material());
-            meshes.add(processMesh(aiMesh, material));
+            Mesh mesh = processMesh(aiMesh, material);
+            meshes.add(mesh);  // collect here
+
+            int vertexOffset = allVertices.size();
+            for (Vertex vertex : mesh.vertices) allVertices.add(vertex);
+            for (int index : mesh.indices) allIndices.add(index + vertexOffset);
         }
 
         aiReleaseImport(scene);
-        return meshes;
+
+        Vertex[] vertexArray = allVertices.toArray(new Vertex[0]);
+        int[] indexArray = allIndices.stream().mapToInt(Integer::intValue).toArray();
+
+        // Now meshes exists and can be iterated
+        String diffusePath = null, normalPath = null, specularPath = null;
+        for (Mesh mesh : meshes) {
+            if (diffusePath == null)  diffusePath  = mesh.material.diffuseMap;
+            if (normalPath == null)   normalPath   = mesh.material.normalMap;
+            if (specularPath == null) specularPath = mesh.material.specularMap;
+            if (diffusePath != null && normalPath != null && specularPath != null) break;
+        }
+
+        return new ModelData(vertexArray, indexArray, diffusePath, normalPath, specularPath);
     }
 
     private static Map<Integer, Material> loadMaterials(AIScene scene, String modelDir) {

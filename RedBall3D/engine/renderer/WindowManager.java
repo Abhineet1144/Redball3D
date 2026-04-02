@@ -39,7 +39,10 @@ public class WindowManager {
         this.currentScene.start();
     }
 
-    public void loop() {
+    public void loop(Shader shader) {
+
+        shader.use();
+
         double lastTime = glfwGetTime();
 
         while (!glfwWindowShouldClose(window)) {

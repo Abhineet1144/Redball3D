@@ -51,7 +51,7 @@ public class Texture {
     }
 
 
-    public void bindTexture() {
+    public void bindTexture(int texSlot) {
         glActiveTexture(texSlot);
         glBindTexture(GL_TEXTURE_2D, texId);
     }
