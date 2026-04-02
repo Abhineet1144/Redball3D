@@ -1,11 +1,15 @@
 package engine.renderer;
 
+import engine.entity.ECSWorld;
+import engine.entity.components.CameraComponent;
 import engine.scene.AbstractScene;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
+
+import java.util.Objects;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -25,15 +29,25 @@ public class WindowManager {
 
         glfwMakeContextCurrent(window);
         glfwShowWindow(window);
+        GLFW.glfwWindowHint(GLFW.GLFW_SAMPLES, 8);
         GL.createCapabilities();
         glEnable(GL_DEPTH_TEST);
 
-        // key callbacks
         glfwSetKeyCallback(window, (w, key, scancode, action, mods) -> {
             if (key >= 0 && key < GLFW_KEY_LAST) {
                 KEYS[key] = (action != GLFW_RELEASE);
             }
         });
+        glfwSetCursorPosCallback(window, (window, xpos, ypos) -> {
+            MouseInput.onMouseMove(xpos, ypos);
+        });
+        glfwSetFramebufferSizeCallback(window, (w, width, height) -> {
+            if (height == 0) return; // prevent divide by zero
+            glViewport(0, 0, width, height);
+            Objects.requireNonNull(ECSWorld.findGameObjectByName("Camera")).getComponent(CameraComponent.class).getCamera().adjustProjection(width, height);
+        });
+
+        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
 
         this.currentScene = scene;
         this.currentScene.start();
@@ -42,6 +56,12 @@ public class WindowManager {
     public void loop(Shader shader) {
 
         shader.use();
+        shader.setInt("diffuseMap", 0);
+        shader.setInt("normalMap", 1);
+        shader.setInt("specularMap", 2);
+        shader.setInt("heightMap", 3);
+        shader.setInt("roughnessMap", 4);
+        shader.setFloat("heightScale", 0.1f);
 
         double lastTime = glfwGetTime();
 

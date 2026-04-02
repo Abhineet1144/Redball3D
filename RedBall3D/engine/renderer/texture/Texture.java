@@ -6,6 +6,7 @@ import java.nio.IntBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
 import org.lwjgl.stb.STBImage;
 
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
@@ -26,23 +27,35 @@ public class Texture {
 
     public Texture(String filePath) {
         this.filePath = filePath;
-
         texId = GL11.glGenTextures();
         glBindTexture(GL11.GL_TEXTURE_2D, texId);
-
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
 
-        IntBuffer width = BufferUtils.createIntBuffer(1);
-        IntBuffer height = BufferUtils.createIntBuffer(1);
+        IntBuffer width    = BufferUtils.createIntBuffer(1);
+        IntBuffer height   = BufferUtils.createIntBuffer(1);
         IntBuffer channels = BufferUtils.createIntBuffer(1);
-        ByteBuffer textureImg = STBImage.stbi_load(filePath, width, height, channels, 0);
 
+        ByteBuffer textureImg = STBImage.stbi_load(filePath, width, height, channels, 0);
         if (textureImg != null) {
-            int format = channels.get(0) == 4 ? GL11.GL_RGBA : GL11.GL_RGB;
-            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, format, width.get(0), height.get(0), 0, format, GL11.GL_UNSIGNED_BYTE, textureImg);
+            int format;
+            switch (channels.get(0)) {
+                case 1: format = GL11.GL_RED;  break;
+                case 2: format = GL30.GL_RG;   break;
+                case 3: format = GL11.GL_RGB;  break;
+                case 4: format = GL11.GL_RGBA; break;
+                default:
+                    System.err.println("Unsupported channel count: " + channels.get(0) + " for " + filePath);
+                    STBImage.stbi_image_free(textureImg);
+                    return;
+            }
+
+            this.width  = width.get(0);
+            this.height = height.get(0);
+
+            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, format, this.width, this.height, 0, format, GL11.GL_UNSIGNED_BYTE, textureImg);
             STBImage.stbi_image_free(textureImg);
         } else {
             System.err.println("Failed to load texture: " + filePath);

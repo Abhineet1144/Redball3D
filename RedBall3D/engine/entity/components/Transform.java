@@ -45,6 +45,10 @@ public class Transform extends Component {
         return position.z;
     }
 
+    public void setRotation(Vector3f rotation) {
+        this.rotation = rotation;
+    }
+
     public void update(float dt) {
     }
 }

@@ -25,11 +25,11 @@ public class BatchRenderer {
     private Shader shader;
     private List<GameObject> entities;
     private float[] verticesData = new float[OVERALL_SIZE * MAX_ENTITIES * 4];
-
     private List<Texture> diffuseTextures = new ArrayList<>();
     private List<Texture> normalTextures = new ArrayList<>();
     private List<Texture> specularTextures = new ArrayList<>();
-
+    private List<Texture> heightTextures = new ArrayList<>();
+    private List<Texture> roughnessTextures = new ArrayList<>();
     public int entityCount = 0;
     private List<Float> verticesDataList = new ArrayList<>();
     private List<Integer> vertexIndexList = new ArrayList<>();
@@ -39,7 +39,6 @@ public class BatchRenderer {
 
     public BatchRenderer(List<GameObject> go) {
         this.shader = new Shader(AssetPool.getVertexShader(), AssetPool.getFragmentShader());
-
         entities = new ArrayList<>();
         for (GameObject g : go) {
             if (g.getComponent(MeshRenderer.class) != null) {
@@ -53,23 +52,19 @@ public class BatchRenderer {
         verticesDataList.clear();
         vertexIndexList.clear();
         highest = 0;
-
         int currentVertexCount = 0;
-
         for (GameObject go : entities) {
             MeshRenderer mr = go.getComponent(MeshRenderer.class);
-
             if (mr.data.diffusePath != null) diffuseTextures.add(new Texture(mr.data.diffusePath));
             if (mr.data.normalPath != null) normalTextures.add(new Texture(mr.data.normalPath));
             if (mr.data.specularPath != null) specularTextures.add(new Texture(mr.data.specularPath));
-
+            if (mr.data.heightPath != null) heightTextures.add(new Texture(mr.data.heightPath));
+            if (mr.data.roughnessPath != null) roughnessTextures.add(new Texture(mr.data.roughnessPath));
             indexCount += mr.data.indices.length;
-
             for (int i = 0; i < mr.data.vertices.length; i++) {
                 MeshRenderer.Vertex vertex = mr.data.vertices[i];
                 Transform transform = go.getComponent(Transform.class);
                 Vector4f result = transform.getMatrix().transform(new Vector4f(vertex.x, vertex.y, vertex.z, 1));
-
                 verticesDataList.add(result.x);
                 verticesDataList.add(result.y);
                 verticesDataList.add(result.z);
@@ -83,53 +78,41 @@ public class BatchRenderer {
                 verticesDataList.add(vertex.ny);
                 verticesDataList.add(vertex.nz);
             }
-
             for (int i : mr.data.indices) {
                 vertexIndexList.add(currentVertexCount + i);
             }
-
             currentVertexCount += mr.data.vertices.length;
         }
-
         // Convert ArrayLists to arrays
         float[] verticesData = new float[verticesDataList.size()];
         for (int i = 0; i < verticesDataList.size(); i++) {
             verticesData[i] = verticesDataList.get(i);
         }
-
         int[] vertexIndex = new int[vertexIndexList.size()];
         for (int i = 0; i < vertexIndexList.size(); i++) {
             vertexIndex[i] = vertexIndexList.get(i);
         }
-
         System.out.println("Vertices: " + (verticesData.length / 12));
         System.out.println("Indices: " + vertexIndex.length);
-
         int vao = glGenVertexArrays();
         int vbo = glGenBuffers();
         int EBO = glGenBuffers();
-
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, verticesData, GL_STATIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, vertexIndex, GL_STATIC_DRAW);
-
         glVertexAttribPointer(0, 3, GL_FLOAT, false, OVERALL_SIZE, 0);
         glEnableVertexAttribArray(0);
-
         // Color attribute
         glVertexAttribPointer(1, 4, GL_FLOAT, false, OVERALL_SIZE, 3 * Float.BYTES);
         glEnableVertexAttribArray(1);
-
         // Texture coords attribute
         glVertexAttribPointer(2, 2, GL_FLOAT, false, OVERALL_SIZE, 7 * Float.BYTES);
         glEnableVertexAttribArray(2);
-
         // Normal attribute (NEW!)
         glVertexAttribPointer(3, 3, GL_FLOAT, false, OVERALL_SIZE, 9 * Float.BYTES);
         glEnableVertexAttribArray(3);
-
         return vao;
     }
 
@@ -141,27 +124,31 @@ public class BatchRenderer {
     public void render(Shader shader) {
         shader.use();
         int indexOffset = 0;
-
         for (int i = 0; i < entities.size(); i++) {
             MeshRenderer mr = entities.get(i).getComponent(MeshRenderer.class);
-
-            // Bind this model's textures
+            // render loop - add missing roughness bind
             if (i < diffuseTextures.size()) {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, diffuseTextures.get(i).getTexID());
-                shader.setInt("diffuseMap", 0);
             }
             if (i < normalTextures.size()) {
                 glActiveTexture(GL_TEXTURE1);
                 glBindTexture(GL_TEXTURE_2D, normalTextures.get(i).getTexID());
-                shader.setInt("normalMap", 1);
             }
             if (i < specularTextures.size()) {
                 glActiveTexture(GL_TEXTURE2);
                 glBindTexture(GL_TEXTURE_2D, specularTextures.get(i).getTexID());
-                shader.setInt("specularMap", 2);
             }
-
+            if (i < heightTextures.size()) {
+                glActiveTexture(GL_TEXTURE3);
+                glBindTexture(GL_TEXTURE_2D, heightTextures.get(i).getTexID());
+            }
+            if (i < roughnessTextures.size()) {
+                glActiveTexture(GL_TEXTURE4);
+                glBindTexture(GL_TEXTURE_2D, roughnessTextures.get(i).getTexID());
+            }
+            shader.setBool("hasHeightMap", i < heightTextures.size());
+            shader.setBool("hasRoughnessMap", i < roughnessTextures.size());
             glBindVertexArray(vao);
             glDrawElements(GL_TRIANGLES, mr.data.indices.length, GL_UNSIGNED_INT, (long) indexOffset * Integer.BYTES);
             indexOffset += mr.data.indices.length;

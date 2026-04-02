@@ -13,22 +13,19 @@ import java.util.Map;
 import static org.lwjgl.assimp.Assimp.*;
 
 public class ModelLoader {
-    public static ModelData ModelData;
-    private static Texture diffuseTexture = null;
-    private Texture normalTexture = null;
-    private Texture specularTexture = null;
-
     public static class Material {
         public String diffuseMap;
         public String normalMap;
         public String specularMap;
         public String roughnessMap;
+        public String heightMap;
 
         public Material() {
             this.diffuseMap = null;
             this.normalMap = null;
             this.specularMap = null;
             this.roughnessMap = null;
+            this.heightMap = null;
         }
     }
 
@@ -50,23 +47,22 @@ public class ModelLoader {
         public String diffusePath;
         public String normalPath;
         public String specularPath;
+        public String heightPath;
+        public String roughnessPath;
 
-        public ModelData(Vertex[] vertices, int[] indices, String diffusePath, String normalPath, String specularPath) {
+        public ModelData(Vertex[] vertices, int[] indices, String diffusePath, String normalPath, String specularPath, String heightPath, String roughnessPath) {
             this.vertices = vertices;
             this.indices = indices;
             this.diffusePath = diffusePath;
             this.normalPath = normalPath;
             this.specularPath = specularPath;
+            this.heightPath = heightPath;
+            this.roughnessPath = roughnessPath;
         }
     }
 
     public static ModelData loadModel(String path) {
-        AIScene scene = aiImportFile(path,
-                aiProcess_Triangulate |
-                        aiProcess_FlipUVs |
-                        aiProcess_GenNormals |
-                        aiProcess_JoinIdenticalVertices
-        );
+        AIScene scene = aiImportFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices);
 
         if (scene == null || scene.mRootNode() == null) {
             throw new RuntimeException("Failed to load model: " + aiGetErrorString());
@@ -99,16 +95,18 @@ public class ModelLoader {
         Vertex[] vertexArray = allVertices.toArray(new Vertex[0]);
         int[] indexArray = allIndices.stream().mapToInt(Integer::intValue).toArray();
 
-        // Now meshes exists and can be iterated
-        String diffusePath = null, normalPath = null, specularPath = null;
+        String diffusePath = null, normalPath = null, specularPath = null, heightPath = null, roughnessPath = null;
         for (Mesh mesh : meshes) {
-            if (diffusePath == null)  diffusePath  = mesh.material.diffuseMap;
-            if (normalPath == null)   normalPath   = mesh.material.normalMap;
+            if (diffusePath == null) diffusePath = mesh.material.diffuseMap;
+            if (normalPath == null) normalPath = mesh.material.normalMap;
             if (specularPath == null) specularPath = mesh.material.specularMap;
-            if (diffusePath != null && normalPath != null && specularPath != null) break;
+            if (heightPath == null) heightPath = mesh.material.heightMap;
+            if (roughnessPath == null) roughnessPath = mesh.material.roughnessMap;
+            if (diffusePath != null && normalPath != null && specularPath != null && heightPath != null && roughnessPath != null)
+                break;
         }
 
-        return new ModelData(vertexArray, indexArray, diffusePath, normalPath, specularPath);
+        return new ModelData(vertexArray, indexArray, diffusePath, normalPath, specularPath, heightPath, roughnessPath);
     }
 
     private static Map<Integer, Material> loadMaterials(AIScene scene, String modelDir) {
@@ -119,20 +117,20 @@ public class ModelLoader {
             AIMaterial aiMaterial = AIMaterial.create(scene.mMaterials().get(i));
             Material material = new Material();
 
-            // Diffuse texture (map_Kd)
+
             material.diffuseMap = getTexturePath(aiMaterial, aiTextureType_DIFFUSE, modelDir);
-
-            // Normal map (map_Bump or map_bump)
-            material.normalMap = getTexturePath(aiMaterial, aiTextureType_NORMALS, modelDir);
-            if (material.normalMap == null) {
-                material.normalMap = getTexturePath(aiMaterial, aiTextureType_HEIGHT, modelDir);
-            }
-
-            // Specular map (map_Ks)
             material.specularMap = getTexturePath(aiMaterial, aiTextureType_SPECULAR, modelDir);
-
-            // Roughness/Shininess map
             material.roughnessMap = getTexturePath(aiMaterial, aiTextureType_SHININESS, modelDir);
+
+            material.normalMap = getTexturePath(aiMaterial, aiTextureType_NORMALS, modelDir);
+
+            String heightPath = getTexturePath(aiMaterial, aiTextureType_HEIGHT, modelDir);
+
+            if (material.normalMap == null) {
+                material.normalMap = heightPath;
+            } else {
+                material.heightMap = heightPath;
+            }
 
             materials.put(i, material);
 
@@ -142,6 +140,7 @@ public class ModelLoader {
             if (material.normalMap != null) System.out.println("  Normal: " + material.normalMap);
             if (material.specularMap != null) System.out.println("  Specular: " + material.specularMap);
             if (material.roughnessMap != null) System.out.println("  Roughness: " + material.roughnessMap);
+            if (material.heightMap != null) System.out.println("  Height: " + material.heightMap);
         }
 
         return materials;
@@ -149,18 +148,7 @@ public class ModelLoader {
 
     private static String getTexturePath(AIMaterial material, int textureType, String modelDir) {
         AIString texPath = AIString.calloc();
-        int result = aiGetMaterialTexture(
-                material,
-                textureType,
-                0,
-                texPath,
-                (int[]) null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        int result = aiGetMaterialTexture(material, textureType, 0, texPath, (int[]) null, null, null, null, null, null);
 
         if (result == aiReturn_SUCCESS) {
             String textureFile = texPath.dataString();

@@ -7,7 +7,8 @@ import org.joml.Vector3f;
 public class Camera {
     private Matrix4f projection, view;
     private Vector3f position;
-    private Vector3f front = new Vector3f(0.0f, 0.0f, -1.0f);
+    public Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
+    public Vector3f front = new Vector3f(0.0f, 0.0f, -1.0f);
     private float yaw = -90.0f;
     private float pitch = 0.0f;
 
@@ -36,7 +37,6 @@ public class Camera {
     }
 
     public Matrix4f getViewMat() {
-        Vector3f cameraUp = new Vector3f(0.0f, 1.0f, 0.0f);
         Vector3f target = new Vector3f(position).add(front); // always look ahead
         view.identity();
         view = view.lookAt(position, target, cameraUp);
@@ -49,5 +49,15 @@ public class Camera {
 
     public void setPosition(Vector3f position) {
         this.position = position;
+    }
+
+    public void setRotation(float deltaYaw, float deltaPitch) {
+        yaw += deltaYaw;
+        pitch += deltaPitch;
+
+        if (pitch > 89.0f) pitch = 89.0f;
+        if (pitch < -89.0f) pitch = -89.0f;
+
+        updateFront();
     }
 }

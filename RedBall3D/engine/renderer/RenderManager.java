@@ -28,8 +28,6 @@ public class RenderManager {
     }
 
     public static void render(GameObject camera) {
-        Engine.getShader().setMat4f("projection", camera.getComponent(CameraComponent.class).getProjectionMatrix());
-        Engine.getShader().setMat4f("view", camera.getComponent(CameraComponent.class).getViewMatrix());
         // matrices
         Engine.getShader().setMat4f("view", camera.getComponent(CameraComponent.class).getViewMatrix());
         Engine.getShader().setMat4f("projection", camera.getComponent(CameraComponent.class).getProjectionMatrix());
@@ -38,15 +36,17 @@ public class RenderManager {
         Matrix4f trans = new Matrix4f();
         Engine.getShader().setMat4f("transform", trans);
 
-        Engine.getShader().setVec3("lights[0].position", 0.0f, 5.0f, 2.0f);
-        Engine.getShader().setVec3("lights[0].ambient",  0.3f, 0.1f, 0.0f);
-        Engine.getShader().setVec3("lights[0].diffuse",  1.0f, 0.4f, 0.0f);
-        Engine.getShader().setVec3("lights[0].specular", 1.0f, 0.5f, 0.0f);
+        // Main white light
+        Engine.getShader().setVec3("lights[0].position", 5.0f, 10.0f, 5.0f);
+        Engine.getShader().setVec3("lights[0].ambient",  0.2f, 0.2f, 0.2f);
+        Engine.getShader().setVec3("lights[0].diffuse",  1.0f, 1.0f, 1.0f);
+        Engine.getShader().setVec3("lights[0].specular", 1.0f, 1.0f, 1.0f);
 
-        Engine.getShader().setVec3("lights[1].position", 0.0f, -5.0f, 2.0f);
-        Engine.getShader().setVec3("lights[1].ambient",  0.0f, 0.0f, 0.2f);
-        Engine.getShader().setVec3("lights[1].diffuse",  0.0f, 0.3f, 1.0f);
-        Engine.getShader().setVec3("lights[1].specular", 0.0f, 0.4f, 1.0f);
+        // Soft fill light
+        Engine.getShader().setVec3("lights[1].position", -5.0f, 3.0f, -5.0f);
+        Engine.getShader().setVec3("lights[1].ambient",  0.05f, 0.05f, 0.05f);
+        Engine.getShader().setVec3("lights[1].diffuse",  0.3f, 0.3f, 0.3f);
+        Engine.getShader().setVec3("lights[1].specular", 0.2f, 0.2f, 0.2f);
 
         // CLEAR
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

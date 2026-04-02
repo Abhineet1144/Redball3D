@@ -30,8 +30,4 @@ public class Engine {
     public static Shader getShader() {
         return shader;
     }
-
-    public static GameObject createEmptyObject(String name) {
-        return ECSWorld.createGameObject(name);
-    }
 }
