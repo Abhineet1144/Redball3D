@@ -4,7 +4,6 @@ import engine.renderer.Camera;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-// CameraComponent.java
 public class CameraComponent extends Component {
     public Camera camera;
     public boolean isMain;

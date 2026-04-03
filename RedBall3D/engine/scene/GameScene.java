@@ -8,7 +8,6 @@ import com.bulletphysics.collision.shapes.CollisionShape;
 import com.bulletphysics.collision.shapes.SphereShape;
 import com.bulletphysics.collision.shapes.StaticPlaneShape;
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
-import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.DefaultMotionState;
@@ -31,8 +30,6 @@ public class GameScene extends AbstractScene {
     private GameObject obj;
     private GameObject obj2;
 
-    RigidBody sphereBody;
-
     @Override
     public void start() {
 
@@ -46,7 +43,6 @@ public class GameScene extends AbstractScene {
                 1f, sphereMotionState, sphereShape, sphereInertia
         );
 
-        // Plane
         // Static ground plane (infinite, faces upward)
         CollisionShape groundShape = new StaticPlaneShape(new javax.vecmath.Vector3f(0, 1, 0), 0);
         DefaultMotionState groundMotionState = new DefaultMotionState(
@@ -55,17 +51,11 @@ public class GameScene extends AbstractScene {
                 )
         );
         RigidBodyConstructionInfo groundCI = new RigidBodyConstructionInfo(
-                0f,  // mass = 0 → static
+                0f,
                 groundMotionState,
                 groundShape,
-                new javax.vecmath.Vector3f(0, 0, 0)  // no inertia needed for static
+                new javax.vecmath.Vector3f(0, 0, 0)
         );
-
-        RigidBody groundBody = new RigidBody(groundCI);
-        PhysicsSystem.getDynamicsWorld().addRigidBody(groundBody);
-
-        sphereBody = new RigidBody(sphereCI);
-        PhysicsSystem.getDynamicsWorld().addRigidBody(sphereBody);
 
         camera = ECSWorld.createGameObject("Camera");
         camera.addComponent(new Transform(new Vector3f(1.0f), new Vector3f(), new Vector3f()));
@@ -74,10 +64,12 @@ public class GameScene extends AbstractScene {
         obj = ECSWorld.createGameObject("Mesh_BackPack");
         obj.addComponent(new Transform(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f), new Vector3f(1.0f)));
         obj.addComponent(new MeshRenderer(ModelLoader.loadModel("res/plane/plane.obj", false)));
+        obj.addComponent(new engine.entity.components.RigidBody(groundCI));
 
         obj2 = ECSWorld.createGameObject("sofa");
         obj2.addComponent(new Transform(new Vector3f(0.0f, -3.0f, 0.0f), new Vector3f(Math.toRadians(0),Math.toRadians(0   ),Math.toRadians(0)), new Vector3f(2.0f)));
         obj2.addComponent(new MeshRenderer(ModelLoader.loadModel("res/sofa/source/ready.obj", false)));
+        obj2.addComponent(new engine.entity.components.RigidBody(sphereCI));
 
         RenderManager.prepare();
     }
@@ -86,7 +78,7 @@ public class GameScene extends AbstractScene {
     public void update(float dt) {
 
         com.bulletphysics.linearmath.Transform trans = new com.bulletphysics.linearmath.Transform();
-        sphereBody.getMotionState().getWorldTransform(trans);
+        obj2.getComponent(RigidBody.class).getRigidBody().getMotionState().getWorldTransform(trans);
 
         obj2.getComponent(Transform.class).position.y = trans.origin.y;
 
