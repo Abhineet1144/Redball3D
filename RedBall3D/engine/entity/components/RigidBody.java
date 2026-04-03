@@ -9,6 +9,7 @@ import engine.core.PhysicsSystem;
 
 import javax.vecmath.Matrix4f;
 import javax.vecmath.Quat4f;
+import javax.vecmath.Vector3f;
 
 public class RigidBody extends Component{
 
@@ -18,8 +19,10 @@ public class RigidBody extends Component{
     @Override
     public void start() {
         collisionShape = new SphereShape(0.001f);
+        org.joml.Vector3f pos = gameObject.getComponent(Transform.class).position;
+
         DefaultMotionState sphereMotionState = new DefaultMotionState(
-                new com.bulletphysics.linearmath.Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), new javax.vecmath.Vector3f(0, 50, 0), 1.0f) )
+                new com.bulletphysics.linearmath.Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), new javax.vecmath.Vector3f(pos.x, pos.y, pos.z), 1.0f) )
         );
         javax.vecmath.Vector3f sphereInertia = new javax.vecmath.Vector3f(0, 0, 0);
         collisionShape.calculateLocalInertia(1f, sphereInertia);
@@ -38,7 +41,22 @@ public class RigidBody extends Component{
 
     }
 
+    public void setStatic() {
+        rigidBody.setMassProps(0f, new Vector3f(0, 0, 0));
+        rigidBody.setCollisionFlags(CollisionFlags.STATIC_OBJECT);
+        rigidBody.updateInertiaTensor();
+        rigidBody.activate(true);
+    }
+
     public com.bulletphysics.dynamics.RigidBody getRigidBody() {
         return rigidBody;
+    }
+
+    public void setCollisionShape(CollisionShape collisionShape) {
+        this.collisionShape = collisionShape;
+    }
+
+    public CollisionShape getCollisionShape() {
+        return collisionShape;
     }
 }

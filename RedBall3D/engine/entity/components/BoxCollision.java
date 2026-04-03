@@ -12,13 +12,14 @@ public class BoxCollision extends Component {
     @Override
     public void start() {
         org.joml.Vector3f scale = gameObject.getComponent(Transform.class).scale;
-        boxShape = new BoxShape(new Vector3f(scale.x, scale.y, scale.z));
+        boxShape = new BoxShape(new Vector3f(scale.x/2, scale.y/2, scale.z/2));
         com.bulletphysics.dynamics.RigidBody rigidBody = gameObject.getComponent(RigidBody.class).getRigidBody();
         float mass = 1f / rigidBody.getInvMass(); // recover mass
         if (rigidBody.getInvMass() == 0) mass = 0f; // static body
         Vector3f inertia = new Vector3f(0, 0, 0);
         if (mass > 0) boxShape.calculateLocalInertia(mass, inertia);
         rigidBody.setCollisionShape(boxShape);
+        rigidBody.setMassProps(mass, inertia);
         rigidBody.updateInertiaTensor();
 
         rigidBody.setCollisionFlags(

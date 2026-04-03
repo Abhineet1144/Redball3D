@@ -4,12 +4,14 @@ import engine.core.PhysicsSystem;
 import engine.entity.ECSWorld;
 import engine.entity.components.CameraComponent;
 import engine.scene.AbstractScene;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
 
+import java.nio.FloatBuffer;
 import java.util.Objects;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -58,7 +60,6 @@ public class WindowManager {
 
     public void loop(Shader shader) {
 
-        shader.use();
         shader.setInt("diffuseMap", 0);
         shader.setInt("normalMap", 1);
         shader.setInt("specularMap", 2);
@@ -75,12 +76,30 @@ public class WindowManager {
 
             PhysicsSystem.update(deltaTime);
 
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            shader.use();
+            RenderManager.render(Objects.requireNonNull(ECSWorld.findGameObjectByName("Camera")));
+            currentScene.update(deltaTime);
+
+            // ---- debug draw ----
+            CameraComponent camComp = Objects.requireNonNull(
+                    ECSWorld.findGameObjectByName("Camera")
+            ).getComponent(CameraComponent.class);
+            Camera cam = camComp.getCamera();
+
+            FloatBuffer proj = BufferUtils.createFloatBuffer(16);
+            FloatBuffer view = BufferUtils.createFloatBuffer(16);
+            cam.getProjectionMat().get(proj);
+            cam.getViewMat().get(view);
+
+            GL11.glMatrixMode(GL11.GL_PROJECTION);
+            GL11.glLoadMatrixf(proj);
+            GL11.glMatrixMode(GL11.GL_MODELVIEW);
+            GL11.glLoadMatrixf(view);
+
             GL11.glDisable(GL_DEPTH_TEST);
             PhysicsSystem.getDynamicsWorld().debugDrawWorld();
             GL11.glEnable(GL_DEPTH_TEST);
-            currentScene.update(deltaTime);
+            // ---- end debug draw ----
 
             glfwSwapBuffers(window);
             glfwPollEvents();

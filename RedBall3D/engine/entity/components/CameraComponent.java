@@ -16,7 +16,11 @@ public class CameraComponent extends Component {
 
     @Override
     public void update(float dt) {
-        camera.setPosition(new Vector3f(gameObject.getComponent(Transform.class).position.x, gameObject.getComponent(Transform.class).position.y, gameObject.getComponent(Transform.class).position.z));
+        Transform t = gameObject.getComponent(Transform.class);
+
+        camera.setPosition(new Vector3f(t.position.x, t.position.y, t.position.z));
+        camera.setRotation(t.rotation.y, t.rotation.x);
+
     }
 
     public Matrix4f getViewMatrix() {

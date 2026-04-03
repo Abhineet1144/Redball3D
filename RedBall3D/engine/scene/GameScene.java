@@ -33,16 +33,6 @@ public class GameScene extends AbstractScene {
     @Override
     public void start() {
 
-        CollisionShape sphereShape = new SphereShape(1f); // radius = 1
-        DefaultMotionState sphereMotionState = new DefaultMotionState(
-                new com.bulletphysics.linearmath.Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), new javax.vecmath.Vector3f(0, 50, 0), 1.0f) )
-        );
-        javax.vecmath.Vector3f sphereInertia = new javax.vecmath.Vector3f(0, 0, 0);
-        sphereShape.calculateLocalInertia(1f, sphereInertia); // mass = 1
-        RigidBodyConstructionInfo sphereCI = new RigidBodyConstructionInfo(
-                1f, sphereMotionState, sphereShape, sphereInertia
-        );
-
         // Static ground plane (infinite, faces upward)
         CollisionShape groundShape = new StaticPlaneShape(new javax.vecmath.Vector3f(0, 1, 0), 0);
         DefaultMotionState groundMotionState = new DefaultMotionState(
@@ -62,15 +52,19 @@ public class GameScene extends AbstractScene {
         camera.addComponent(new CameraComponent(1920, 1080));
 
         obj = ECSWorld.createGameObject("Mesh_BackPack");
-        obj.addComponent(new Transform(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f), new Vector3f(1.0f)));
+        obj.addComponent(new Transform(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f), new Vector3f(100.0f, 0.1f, 100.0f)));
         obj.addComponent(new MeshRenderer(ModelLoader.loadModel("res/plane/plane.obj", false)));
+        obj.addComponent(new engine.entity.components.RigidBody());
+        obj.addComponent(new BoxCollision());
 
         obj2 = ECSWorld.createGameObject("sofa");
-        obj2.addComponent(new Transform(new Vector3f(0.0f, -3.0f, 0.0f), new Vector3f(Math.toRadians(0),Math.toRadians(0   ),Math.toRadians(0)), new Vector3f(2.0f)));
+        obj2.addComponent(new Transform(new Vector3f(0.0f, 50.0f, 0.0f), new Vector3f(Math.toRadians(0),Math.toRadians(0),Math.toRadians(0)), new Vector3f(10.0f)));
         obj2.addComponent(new MeshRenderer(ModelLoader.loadModel("res/sofa/source/ready.obj", false)));
         obj2.addComponent(new engine.entity.components.RigidBody());
+        obj2.addComponent(new BoxCollision());
 
         RenderManager.prepare();
+        obj.getComponent(RigidBody.class).setStatic();
     }
 
     @Override
@@ -78,8 +72,9 @@ public class GameScene extends AbstractScene {
 
         com.bulletphysics.linearmath.Transform trans = new com.bulletphysics.linearmath.Transform();
         obj2.getComponent(RigidBody.class).getRigidBody().getMotionState().getWorldTransform(trans);
-
+        obj2.getComponent(Transform.class).position.x = trans.origin.x;
         obj2.getComponent(Transform.class).position.y = trans.origin.y;
+        obj2.getComponent(Transform.class).position.z = trans.origin.z;
 
         float speed = 15.0f * dt;
         Transform t = camera.getComponent(Transform.class);
@@ -106,8 +101,5 @@ public class GameScene extends AbstractScene {
         c.getCamera().setRotation((float) MouseInput.getDeltaX() * sensitivity, (float) MouseInput.getDeltaY() * sensitivity);
         MouseInput.endFrame();
 
-        ECSWorld.update(dt);
-
-        RenderManager.render(camera);
-    }
+        ECSWorld.update(dt);}
 }

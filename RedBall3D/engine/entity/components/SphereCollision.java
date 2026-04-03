@@ -13,6 +13,7 @@ public class SphereCollision extends Component {
     public void start() {
         sphereShape = new SphereShape(gameObject.getComponent(Transform.class).scale.x);
         com.bulletphysics.dynamics.RigidBody rigidBody = gameObject.getComponent(RigidBody.class).getRigidBody();
+        gameObject.getComponent(RigidBody.class).setCollisionShape(sphereShape);
         float mass = 1f / rigidBody.getInvMass(); // recover mass
         if (rigidBody.getInvMass() == 0) mass = 0f; // static body
         Vector3f inertia = new Vector3f(0, 0, 0);
@@ -26,6 +27,8 @@ public class SphereCollision extends Component {
 
         rigidBody.activate(true);
     }
+
+
 
     @Override
     public void update(float dt) {
