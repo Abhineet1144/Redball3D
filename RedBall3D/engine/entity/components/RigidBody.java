@@ -1,6 +1,10 @@
 package engine.entity.components;
 
+import com.bulletphysics.collision.dispatch.CollisionFlags;
+import com.bulletphysics.collision.shapes.CollisionShape;
+import com.bulletphysics.collision.shapes.SphereShape;
 import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
+import com.bulletphysics.linearmath.DefaultMotionState;
 import engine.core.PhysicsSystem;
 
 import javax.vecmath.Matrix4f;
@@ -9,9 +13,23 @@ import javax.vecmath.Quat4f;
 public class RigidBody extends Component{
 
     private com.bulletphysics.dynamics.RigidBody rigidBody;
+    private CollisionShape collisionShape;
 
-    public RigidBody(RigidBodyConstructionInfo rigidBodyConstructionInfo) {
-        rigidBody = new com.bulletphysics.dynamics.RigidBody(rigidBodyConstructionInfo);
+    @Override
+    public void start() {
+        collisionShape = new SphereShape(0.001f);
+        DefaultMotionState sphereMotionState = new DefaultMotionState(
+                new com.bulletphysics.linearmath.Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), new javax.vecmath.Vector3f(0, 50, 0), 1.0f) )
+        );
+        javax.vecmath.Vector3f sphereInertia = new javax.vecmath.Vector3f(0, 0, 0);
+        collisionShape.calculateLocalInertia(1f, sphereInertia);
+        RigidBodyConstructionInfo constructionInfo = new RigidBodyConstructionInfo(
+                1f, sphereMotionState, collisionShape, sphereInertia
+        );
+
+        rigidBody = new com.bulletphysics.dynamics.RigidBody(constructionInfo);
+        rigidBody.setCollisionFlags(rigidBody.getCollisionFlags() | CollisionFlags.NO_CONTACT_RESPONSE);
+
         PhysicsSystem.getDynamicsWorld().addRigidBody(rigidBody);
     }
 

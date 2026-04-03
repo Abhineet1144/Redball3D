@@ -25,6 +25,8 @@ public class RenderManager {
             batch.prepare();
             batches.add(batch);
         }
+
+        ECSWorld.start();
     }
 
     public static void render(GameObject camera) {

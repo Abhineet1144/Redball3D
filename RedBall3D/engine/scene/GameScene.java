@@ -64,12 +64,11 @@ public class GameScene extends AbstractScene {
         obj = ECSWorld.createGameObject("Mesh_BackPack");
         obj.addComponent(new Transform(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f), new Vector3f(1.0f)));
         obj.addComponent(new MeshRenderer(ModelLoader.loadModel("res/plane/plane.obj", false)));
-        obj.addComponent(new engine.entity.components.RigidBody(groundCI));
 
         obj2 = ECSWorld.createGameObject("sofa");
         obj2.addComponent(new Transform(new Vector3f(0.0f, -3.0f, 0.0f), new Vector3f(Math.toRadians(0),Math.toRadians(0   ),Math.toRadians(0)), new Vector3f(2.0f)));
         obj2.addComponent(new MeshRenderer(ModelLoader.loadModel("res/sofa/source/ready.obj", false)));
-        obj2.addComponent(new engine.entity.components.RigidBody(sphereCI));
+        obj2.addComponent(new engine.entity.components.RigidBody());
 
         RenderManager.prepare();
     }
