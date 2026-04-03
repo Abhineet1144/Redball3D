@@ -1,13 +1,16 @@
 package engine.renderer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import engine.core.Engine;
 import engine.entity.GameObject;
 import engine.entity.components.MeshRenderer;
 import engine.entity.components.Transform;
 import engine.renderer.texture.Texture;
-import engine.utils.AssetPool;
+import org.joml.Matrix4f;
 import org.joml.Vector4f;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -16,29 +19,21 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 public class BatchRenderer {
-    public static final int MAX_ENTITIES = 1000;
     private static final int POS_SIZE = 3 * Float.BYTES;
     private static final int COLOR_SIZE = 4 * Float.BYTES;
     private static final int TEXTURE_MAP_SIZE = 2 * Float.BYTES;
-    private static final int NORMAL_SIZE = 3 * Float.BYTES;  // ADD THIS
-    private static final int OVERALL_SIZE = POS_SIZE + COLOR_SIZE + TEXTURE_MAP_SIZE + NORMAL_SIZE;  // UPDATED!
-    private Shader shader;
+    private static final int NORMAL_SIZE = 3 * Float.BYTES;
+    private static final int OVERALL_SIZE = POS_SIZE + COLOR_SIZE + TEXTURE_MAP_SIZE + NORMAL_SIZE;
     private List<GameObject> entities;
-    private float[] verticesData = new float[OVERALL_SIZE * MAX_ENTITIES * 4];
-    private List<Texture> diffuseTextures = new ArrayList<>();
-    private List<Texture> normalTextures = new ArrayList<>();
-    private List<Texture> specularTextures = new ArrayList<>();
-    private List<Texture> heightTextures = new ArrayList<>();
-    private List<Texture> roughnessTextures = new ArrayList<>();
+    private Map<String, Texture> textureCache = new HashMap<>();
+
     public int entityCount = 0;
     private List<Float> verticesDataList = new ArrayList<>();
     private List<Integer> vertexIndexList = new ArrayList<>();
-    private int highest = 0;
     private int indexCount;
     private int vao;
 
     public BatchRenderer(List<GameObject> go) {
-        this.shader = new Shader(AssetPool.getVertexShader(), AssetPool.getFragmentShader());
         entities = new ArrayList<>();
         for (GameObject g : go) {
             if (g.getComponent(MeshRenderer.class) != null) {
@@ -51,23 +46,17 @@ public class BatchRenderer {
     public int updateAllVertices() {
         verticesDataList.clear();
         vertexIndexList.clear();
-        highest = 0;
+        indexCount = 0;
+
         int currentVertexCount = 0;
         for (GameObject go : entities) {
             MeshRenderer mr = go.getComponent(MeshRenderer.class);
-            if (mr.data.diffusePath != null) diffuseTextures.add(new Texture(mr.data.diffusePath));
-            if (mr.data.normalPath != null) normalTextures.add(new Texture(mr.data.normalPath));
-            if (mr.data.specularPath != null) specularTextures.add(new Texture(mr.data.specularPath));
-            if (mr.data.heightPath != null) heightTextures.add(new Texture(mr.data.heightPath));
-            if (mr.data.roughnessPath != null) roughnessTextures.add(new Texture(mr.data.roughnessPath));
+
             indexCount += mr.data.indices.length;
-            for (int i = 0; i < mr.data.vertices.length; i++) {
-                MeshRenderer.Vertex vertex = mr.data.vertices[i];
-                Transform transform = go.getComponent(Transform.class);
-                Vector4f result = transform.getMatrix().transform(new Vector4f(vertex.x, vertex.y, vertex.z, 1));
-                verticesDataList.add(result.x);
-                verticesDataList.add(result.y);
-                verticesDataList.add(result.z);
+            for (MeshRenderer.Vertex vertex : mr.data.vertices) {
+                verticesDataList.add(vertex.x);
+                verticesDataList.add(vertex.y);
+                verticesDataList.add(vertex.z);
                 verticesDataList.add(vertex.r);
                 verticesDataList.add(vertex.g);
                 verticesDataList.add(vertex.b);
@@ -120,38 +109,43 @@ public class BatchRenderer {
         vao = updateAllVertices();
     }
 
-    // Planning to add Texture Atlas: Combine all your textures into one big texture and offset the UVs per model. Complex to set up.
+    private void bindOrUnbind(int slot, String path) {
+        glActiveTexture(slot);
+        if (path != null) {
+            Texture tex = textureCache.computeIfAbsent(path, Texture::new);
+            glBindTexture(GL_TEXTURE_2D, tex.getTexID());
+        } else {
+            glBindTexture(GL_TEXTURE_2D, 0); // unbind
+        }
+    }
+
     public void render(Shader shader) {
         shader.use();
-        int indexOffset = 0;
-        for (int i = 0; i < entities.size(); i++) {
-            MeshRenderer mr = entities.get(i).getComponent(MeshRenderer.class);
-            // render loop - add missing roughness bind
-            if (i < diffuseTextures.size()) {
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, diffuseTextures.get(i).getTexID());
+        glBindVertexArray(vao);
+
+        int globalIndexOffset = 0;
+
+        for (GameObject entity : entities) {
+            MeshRenderer mr = entity.getComponent(MeshRenderer.class);
+            Transform transform = entity.getComponent(Transform.class);
+            shader.setMat4f("transform", transform.getMatrix());
+
+            for (ModelLoader.DrawRange range : mr.data.drawRanges) {
+                if (range.diffusePath == null) continue;
+
+                bindOrUnbind(GL_TEXTURE0, range.diffusePath);
+                bindOrUnbind(GL_TEXTURE1, range.normalPath);
+                bindOrUnbind(GL_TEXTURE2, range.specularPath);
+                bindOrUnbind(GL_TEXTURE3, range.heightPath);
+                bindOrUnbind(GL_TEXTURE4, range.roughnessPath);
+
+                shader.setBool("hasHeightMap",    range.heightPath    != null);
+                shader.setBool("hasRoughnessMap", range.roughnessPath != null);
+
+                long offset = (long)(globalIndexOffset + range.indexOffset) * Integer.BYTES;
+                glDrawElements(GL_TRIANGLES, range.indexCount, GL_UNSIGNED_INT, offset);
             }
-            if (i < normalTextures.size()) {
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, normalTextures.get(i).getTexID());
-            }
-            if (i < specularTextures.size()) {
-                glActiveTexture(GL_TEXTURE2);
-                glBindTexture(GL_TEXTURE_2D, specularTextures.get(i).getTexID());
-            }
-            if (i < heightTextures.size()) {
-                glActiveTexture(GL_TEXTURE3);
-                glBindTexture(GL_TEXTURE_2D, heightTextures.get(i).getTexID());
-            }
-            if (i < roughnessTextures.size()) {
-                glActiveTexture(GL_TEXTURE4);
-                glBindTexture(GL_TEXTURE_2D, roughnessTextures.get(i).getTexID());
-            }
-            shader.setBool("hasHeightMap", i < heightTextures.size());
-            shader.setBool("hasRoughnessMap", i < roughnessTextures.size());
-            glBindVertexArray(vao);
-            glDrawElements(GL_TRIANGLES, mr.data.indices.length, GL_UNSIGNED_INT, (long) indexOffset * Integer.BYTES);
-            indexOffset += mr.data.indices.length;
+            globalIndexOffset += mr.data.indices.length;
         }
     }
 }

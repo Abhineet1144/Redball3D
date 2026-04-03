@@ -41,28 +41,42 @@ public class ModelLoader {
         }
     }
 
-    public static class ModelData {
-        public Vertex[] vertices;
-        public int[] indices;
+    public static class DrawRange {
+        public int indexOffset;
+        public int indexCount;
         public String diffusePath;
         public String normalPath;
         public String specularPath;
-        public String heightPath;
         public String roughnessPath;
+        public String heightPath;
 
-        public ModelData(Vertex[] vertices, int[] indices, String diffusePath, String normalPath, String specularPath, String heightPath, String roughnessPath) {
-            this.vertices = vertices;
-            this.indices = indices;
+        public DrawRange(int indexOffset, int indexCount, String diffusePath, String normalPath, String specularPath, String roughnessPath, String heightPath) {
+            this.indexOffset = indexOffset;
+            this.indexCount = indexCount;
             this.diffusePath = diffusePath;
             this.normalPath = normalPath;
             this.specularPath = specularPath;
-            this.heightPath = heightPath;
             this.roughnessPath = roughnessPath;
+            this.heightPath = heightPath;
         }
     }
 
-    public static ModelData loadModel(String path) {
-        AIScene scene = aiImportFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices);
+    public static class ModelData {
+        public Vertex[] vertices;
+        public int[] indices;
+        public List<DrawRange> drawRanges = new ArrayList<>();
+
+        public ModelData(Vertex[] vertices, int[] indices) {
+            this.vertices = vertices;
+            this.indices = indices;
+        }
+    }
+
+    public static ModelData loadModel(String path, boolean flip) {
+        int flags = aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_OptimizeMeshes | aiProcess_JoinIdenticalVertices;
+        if (flip) flags |= aiProcess_FlipUVs;
+
+        AIScene scene = aiImportFile(path, flags);
 
         if (scene == null || scene.mRootNode() == null) {
             throw new RuntimeException("Failed to load model: " + aiGetErrorString());
@@ -83,7 +97,7 @@ public class ModelLoader {
             int materialIndex = aiMesh.mMaterialIndex();
             Material material = materials.getOrDefault(materialIndex, new Material());
             Mesh mesh = processMesh(aiMesh, material);
-            meshes.add(mesh);  // collect here
+            meshes.add(mesh);
 
             int vertexOffset = allVertices.size();
             for (Vertex vertex : mesh.vertices) allVertices.add(vertex);
@@ -95,18 +109,15 @@ public class ModelLoader {
         Vertex[] vertexArray = allVertices.toArray(new Vertex[0]);
         int[] indexArray = allIndices.stream().mapToInt(Integer::intValue).toArray();
 
-        String diffusePath = null, normalPath = null, specularPath = null, heightPath = null, roughnessPath = null;
+        ModelData modelData = new ModelData(vertexArray, indexArray);
+
+        int indexOffset = 0;
         for (Mesh mesh : meshes) {
-            if (diffusePath == null) diffusePath = mesh.material.diffuseMap;
-            if (normalPath == null) normalPath = mesh.material.normalMap;
-            if (specularPath == null) specularPath = mesh.material.specularMap;
-            if (heightPath == null) heightPath = mesh.material.heightMap;
-            if (roughnessPath == null) roughnessPath = mesh.material.roughnessMap;
-            if (diffusePath != null && normalPath != null && specularPath != null && heightPath != null && roughnessPath != null)
-                break;
+            modelData.drawRanges.add(new DrawRange(indexOffset, mesh.indices.length, mesh.material.diffuseMap, mesh.material.normalMap, mesh.material.specularMap, mesh.material.roughnessMap, mesh.material.heightMap));
+            indexOffset += mesh.indices.length;
         }
 
-        return new ModelData(vertexArray, indexArray, diffusePath, normalPath, specularPath, heightPath, roughnessPath);
+        return modelData;
     }
 
     private static Map<Integer, Material> loadMaterials(AIScene scene, String modelDir) {

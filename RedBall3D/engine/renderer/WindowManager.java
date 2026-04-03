@@ -1,5 +1,6 @@
 package engine.renderer;
 
+import engine.core.PhysicsSystem;
 import engine.entity.ECSWorld;
 import engine.entity.components.CameraComponent;
 import engine.scene.AbstractScene;
@@ -49,6 +50,8 @@ public class WindowManager {
 
         GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
 
+        PhysicsSystem.setup();
+
         this.currentScene = scene;
         this.currentScene.start();
     }
@@ -70,9 +73,13 @@ public class WindowManager {
             float deltaTime = (float)(time - lastTime);
             lastTime = time;
 
+            PhysicsSystem.update(deltaTime);
+
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+            GL11.glDisable(GL_DEPTH_TEST);
+            PhysicsSystem.getDynamicsWorld().debugDrawWorld();
+            GL11.glEnable(GL_DEPTH_TEST);
             currentScene.update(deltaTime);
 
             glfwSwapBuffers(window);

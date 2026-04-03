@@ -32,10 +32,6 @@ public class RenderManager {
         Engine.getShader().setMat4f("view", camera.getComponent(CameraComponent.class).getViewMatrix());
         Engine.getShader().setMat4f("projection", camera.getComponent(CameraComponent.class).getProjectionMatrix());
 
-        // transform
-        Matrix4f trans = new Matrix4f();
-        Engine.getShader().setMat4f("transform", trans);
-
         // Main white light
         Engine.getShader().setVec3("lights[0].position", 5.0f, 10.0f, 5.0f);
         Engine.getShader().setVec3("lights[0].ambient",  0.2f, 0.2f, 0.2f);

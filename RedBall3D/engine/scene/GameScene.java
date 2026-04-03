@@ -1,5 +1,18 @@
 package engine.scene;
 
+import com.bulletphysics.collision.broadphase.BroadphaseInterface;
+import com.bulletphysics.collision.broadphase.DbvtBroadphase;
+import com.bulletphysics.collision.dispatch.CollisionDispatcher;
+import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
+import com.bulletphysics.collision.shapes.CollisionShape;
+import com.bulletphysics.collision.shapes.SphereShape;
+import com.bulletphysics.collision.shapes.StaticPlaneShape;
+import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
+import com.bulletphysics.dynamics.RigidBody;
+import com.bulletphysics.dynamics.RigidBodyConstructionInfo;
+import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
+import com.bulletphysics.linearmath.DefaultMotionState;
+import engine.core.PhysicsSystem;
 import engine.entity.ECSWorld;
 import engine.entity.GameObject;
 import engine.entity.components.*;
@@ -9,7 +22,8 @@ import org.joml.Math;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.List;
+import javax.vecmath.Matrix4f;
+import javax.vecmath.Quat4f;
 
 public class GameScene extends AbstractScene {
 
@@ -17,32 +31,70 @@ public class GameScene extends AbstractScene {
     private GameObject obj;
     private GameObject obj2;
 
+    RigidBody sphereBody;
+
     @Override
     public void start() {
-        // camera
+
+        CollisionShape sphereShape = new SphereShape(1f); // radius = 1
+        DefaultMotionState sphereMotionState = new DefaultMotionState(
+                new com.bulletphysics.linearmath.Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), new javax.vecmath.Vector3f(0, 50, 0), 1.0f) )
+        );
+        javax.vecmath.Vector3f sphereInertia = new javax.vecmath.Vector3f(0, 0, 0);
+        sphereShape.calculateLocalInertia(1f, sphereInertia); // mass = 1
+        RigidBodyConstructionInfo sphereCI = new RigidBodyConstructionInfo(
+                1f, sphereMotionState, sphereShape, sphereInertia
+        );
+
+        // Plane
+        // Static ground plane (infinite, faces upward)
+        CollisionShape groundShape = new StaticPlaneShape(new javax.vecmath.Vector3f(0, 1, 0), 0);
+        DefaultMotionState groundMotionState = new DefaultMotionState(
+                new com.bulletphysics.linearmath.Transform(
+                        new Matrix4f(new Quat4f(0, 0, 0, 1), new javax.vecmath.Vector3f(0, 0, 0), 1.0f)
+                )
+        );
+        RigidBodyConstructionInfo groundCI = new RigidBodyConstructionInfo(
+                0f,  // mass = 0 → static
+                groundMotionState,
+                groundShape,
+                new javax.vecmath.Vector3f(0, 0, 0)  // no inertia needed for static
+        );
+
+        RigidBody groundBody = new RigidBody(groundCI);
+        PhysicsSystem.getDynamicsWorld().addRigidBody(groundBody);
+
+        sphereBody = new RigidBody(sphereCI);
+        PhysicsSystem.getDynamicsWorld().addRigidBody(sphereBody);
+
         camera = ECSWorld.createGameObject("Camera");
-        camera.addComponent(new Transform(new Vector3f(0.0f, 0.0f, 20.0f), new Vector3f(), new Vector3f()));
+        camera.addComponent(new Transform(new Vector3f(1.0f), new Vector3f(), new Vector3f()));
         camera.addComponent(new CameraComponent(1920, 1080));
 
         obj = ECSWorld.createGameObject("Mesh_BackPack");
-        obj.addComponent(new Transform(new Vector3f(0.0f, -3.0f, 0.0f), new Vector3f(), new Vector3f(2.0f)));
-        obj.addComponent(new MeshRenderer(ModelLoader.loadModel("res/Leon/leon.obj")));
+        obj.addComponent(new Transform(new Vector3f(0.0f, 0.0f, 0.0f), new Vector3f(0.0f), new Vector3f(1.0f)));
+        obj.addComponent(new MeshRenderer(ModelLoader.loadModel("res/plane/plane.obj", false)));
 
         obj2 = ECSWorld.createGameObject("sofa");
-        obj2.addComponent(new Transform(new Vector3f(), new Vector3f(0,Math.toRadians(90),0), new Vector3f(1.0f)));
-        obj2.addComponent(new MeshRenderer(ModelLoader.loadModel("res/backpack/backpack.obj")));
+        obj2.addComponent(new Transform(new Vector3f(0.0f, -3.0f, 0.0f), new Vector3f(Math.toRadians(0),Math.toRadians(0   ),Math.toRadians(0)), new Vector3f(2.0f)));
+        obj2.addComponent(new MeshRenderer(ModelLoader.loadModel("res/sofa/source/ready.obj", false)));
 
         RenderManager.prepare();
     }
 
     @Override
     public void update(float dt) {
-        // camera movement
+
+        com.bulletphysics.linearmath.Transform trans = new com.bulletphysics.linearmath.Transform();
+        sphereBody.getMotionState().getWorldTransform(trans);
+
+        obj2.getComponent(Transform.class).position.y = trans.origin.y;
+
         float speed = 15.0f * dt;
         Transform t = camera.getComponent(Transform.class);
         CameraComponent c = camera.getComponent(CameraComponent.class);
         Vector3f dir = new Vector3f(c.getCamera().front);
-        Vector3f up  = new Vector3f(c.getCamera().cameraUp);
+        Vector3f up = new Vector3f(c.getCamera().cameraUp);
 
         if (WindowManager.isKeyDown(GLFW.GLFW_KEY_D)) {
             Vector3f right = new Vector3f(up).cross(dir).normalize();
